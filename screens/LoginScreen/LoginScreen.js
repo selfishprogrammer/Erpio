@@ -1,10 +1,53 @@
 /* eslint-disable react-native/no-inline-styles */
 import {View, Text, Image, TextInput, TouchableOpacity} from 'react-native';
-import React from 'react';
+import React, {useState} from 'react';
 import Colors from '../../constants/Colors';
 import {logo} from '../../constants/Images';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {userLogin} from '../../Services/Services';
+import ErrorText from '../../components/ErrorText';
+import Auth from '../../Services/Auth';
+import {useDispatch} from 'react-redux';
+import {setLogin} from '../../Redux/Reducer/user';
+import Toast from '../../components/Toast';
 export default function LoginScreen() {
+  const [employee_id, setemployee_id] = useState('');
+  const [password, setpassword] = useState('');
+  const [passwordError, setpasswordError] = useState('');
+  const [employeeIdError, setemployeeIdError] = useState('');
+  const [backendError, setbackendError] = useState('');
+
+  const dispatch = useDispatch();
+  const resetInputError = () => {
+    setemployee_id('');
+    setpassword('');
+    setemployeeIdError('');
+    setpasswordError('');
+    setbackendError('');
+  };
+  const login = async () => {
+    resetInputError();
+    if (employee_id.length <= 0) {
+      setemployeeIdError('Fields cannot be empty!');
+    }
+    if (password.length <= 0) {
+      setpasswordError('Fields cannot be empty!');
+    } else {
+      const userData = {
+        employee_id: employee_id,
+        password: password,
+      };
+      const loggedIn = await userLogin(userData);
+      if (loggedIn?.status === 'true') {
+        await Auth.setUser(loggedIn.details);
+        await Auth.setUserEmail(loggedIn.details?.employee_email);
+        dispatch(setLogin(true));
+      } else {
+        console.log('loggedInData===>>>>', loggedIn.data);
+        setbackendError(loggedIn.data);
+      }
+    }
+  };
   return (
     <SafeAreaView
       style={{
@@ -60,12 +103,15 @@ export default function LoginScreen() {
           }}>
           Welcome back to ERPIO ..
         </Text>
+        <Toast text={backendError} />
         <TextInput
+          value={employee_id}
+          onChangeText={setemployee_id}
           style={{
             width: '90%',
             backgroundColor: '#DFEEFC',
             marginVertical: 10,
-
+            color: 'black',
             alignSelf: 'center',
 
             height: 40,
@@ -74,7 +120,10 @@ export default function LoginScreen() {
           }}
           placeholder="Employee ID"
         />
+        <ErrorText errorText={employeeIdError} />
         <TextInput
+          value={password}
+          onChangeText={setpassword}
           style={{
             width: '90%',
             backgroundColor: '#DFEEFC',
@@ -88,6 +137,7 @@ export default function LoginScreen() {
           }}
           placeholder="Password"
         />
+        <ErrorText errorText={passwordError} />
         <TouchableOpacity
           style={{
             shadowOffset: {
@@ -107,6 +157,7 @@ export default function LoginScreen() {
             marginVertical: 10,
           }}>
           <Text
+            onPress={login}
             style={{
               fontSize: 15,
               lineHeight: 20,
